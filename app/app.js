@@ -4,6 +4,7 @@ const patientText = document.getElementById("patient-text");
 const patientOpen = document.getElementById("patient-open");
 const patientList = document.getElementById("patient-list");
 const patientError = document.getElementById("patient-error");
+const patientBanner = document.getElementById("patient-banner");
 const roleButtonsEl = document.getElementById("role-buttons");
 const buttonsEl = document.getElementById("situation-buttons");
 const freeForm = document.getElementById("free-form");
@@ -13,7 +14,6 @@ const cardEl = document.getElementById("card");
 const briefPane = document.getElementById("brief-pane");
 const skeletonEl = document.getElementById("brief-skeleton");
 const emptyEl = document.getElementById("brief-empty");
-const emptyText = document.getElementById("brief-empty-text");
 const factsWrap = document.getElementById("facts-wrap");
 const answersEl = document.getElementById("answers");
 const extrasWrap = document.getElementById("extras-wrap");
@@ -26,11 +26,6 @@ const docKicker = document.getElementById("doc-kicker");
 const docTitle = document.getElementById("doc-title");
 const docSub = document.getElementById("doc-sub");
 const docText = document.getElementById("doc-text");
-
-const EMPTY_ROLE = "Say who you are.";
-const EMPTY_CHART = "Open a chart.";
-const EMPTY_READY = "Choose a task, or describe this purpose.";
-const EMPTY_FAILED = "This chart could not be opened.";
 
 let ready = false;
 let activeId = null;
@@ -49,13 +44,27 @@ function setStatus(kind, text) {
   statusEl.textContent = text;
 }
 
+function syncSteps() {
+  const replyVisible = !cardEl.classList.contains("hidden") || !skeletonEl.classList.contains("hidden");
+  let step = "role";
+  if (selectedRole) step = "patient";
+  if (selectedRole && ready) step = replyVisible ? "replies" : "purpose";
+  document.body.dataset.step = step;
+  document.body.classList.toggle(
+    "has-letter",
+    step === "replies" && !docView.classList.contains("hidden")
+  );
+}
+
 function setBriefMode(mode) {
-  skeletonEl.classList.toggle("hidden", mode !== "loading");
-  skeletonEl.setAttribute("aria-hidden", mode === "loading" ? "false" : "true");
-  emptyEl.classList.toggle("hidden", mode !== "empty");
-  briefPane.setAttribute("aria-busy", mode === "loading" ? "true" : "false");
+  const loading = mode === "loading";
+  skeletonEl.classList.toggle("hidden", !loading);
+  skeletonEl.setAttribute("aria-hidden", loading ? "false" : "true");
+  emptyEl.classList.add("hidden");
+  briefPane.setAttribute("aria-busy", loading ? "true" : "false");
   if (mode !== "card") cardEl.classList.add("hidden");
   else cardEl.classList.remove("hidden");
+  syncSteps();
 }
 
 async function fetchJSON(url, options) {
@@ -80,15 +89,14 @@ function clearOpenedChart() {
   ready = false;
   patientText.value = "";
   showPatientError("");
-  document.getElementById("patient-name").textContent = "—";
-  document.getElementById("patient-id").textContent = "";
-  document.getElementById("patient-asof").textContent = "";
   freeSubmit.disabled = true;
   activeId = null;
-  cardEl.classList.add("hidden");
+  patientBanner.classList.add("hidden");
+  document.getElementById("patient-name").textContent = "";
+  document.getElementById("patient-id").textContent = "";
+  document.getElementById("patient-asof").textContent = "";
   resetLetter();
-  emptyText.textContent = selectedRole ? EMPTY_CHART : EMPTY_ROLE;
-  setBriefMode("empty");
+  setBriefMode("idle");
 }
 
 async function pollStatus() {
@@ -105,12 +113,8 @@ async function pollStatus() {
         b.disabled = false;
       });
       setStatus("ready", "");
-      if (cardEl.classList.contains("hidden")) {
-        emptyText.textContent = EMPTY_READY;
-        setBriefMode("empty");
-      } else {
-        setBriefMode("card");
-      }
+      if (cardEl.classList.contains("hidden")) setBriefMode("idle");
+      else setBriefMode("card");
       return true;
     }
     ready = false;
@@ -120,19 +124,17 @@ async function pollStatus() {
     });
     if (s.error) {
       setStatus("error", `Build failed: ${s.error}`);
-      emptyText.textContent = EMPTY_FAILED;
-      setBriefMode("empty");
+      setBriefMode("idle");
       return false;
     }
     const reading = s.patient && s.patient.source === "pdf" ? "Reading the PDFs…" : "Reading the letters…";
     setStatus("wait", reading);
-    setBriefMode("loading");
+    syncSteps();
     return false;
   } catch (err) {
     if (patientNow !== selectedPatient) return false;
     setStatus("error", `Cannot reach server: ${err.message}`);
-    emptyText.textContent = EMPTY_FAILED;
-    setBriefMode("empty");
+    setBriefMode("idle");
     return false;
   }
 }
@@ -156,6 +158,7 @@ function renderPatientHeader(patient) {
   document.getElementById("patient-asof").textContent = patient.as_of_label
     ? `Chart as of ${patient.as_of_label}`
     : "";
+  patientBanner.classList.remove("hidden");
 }
 
 function resetLetter() {
@@ -165,6 +168,7 @@ function resetLetter() {
   docKicker.textContent = "";
   docTitle.textContent = "";
   docSub.textContent = "";
+  syncSteps();
 }
 
 function clearCard() {
@@ -172,7 +176,7 @@ function clearCard() {
   cardEl.classList.add("hidden");
   [...buttonsEl.querySelectorAll("button")].forEach((b) => b.classList.remove("active"));
   resetLetter();
-  setBriefMode("loading");
+  setBriefMode("idle");
 }
 
 function showPatientError(message) {
@@ -237,6 +241,14 @@ function mismatchLabel(mismatch) {
   return `${kind} date mismatch: letter ${formatIso(mismatch.documented)}, text ${formatIso(mismatch.in_text)}`;
 }
 
+function citation(src) {
+  return {
+    doc_id: src.doc_id,
+    date: src.date,
+    quote_de: src.quote_de,
+  };
+}
+
 function sourceButton(src) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -254,20 +266,96 @@ function sourceButton(src) {
   return btn;
 }
 
-function appendDateMismatches(parent, sources) {
-  const seen = new Set();
-  for (const src of sources || []) {
+const MISMATCH_CLASS_ORDER = ["admission", "discharge", "measurement"];
+const MISMATCH_CLASS_LABEL = {
+  admission: "Admission",
+  discharge: "Discharge",
+  measurement: "Measurement",
+};
+
+function collectDateMismatches(card) {
+  const sources = [];
+  const push = (list) => {
+    for (const src of list || []) {
+      if (src && src.date_mismatch) sources.push(src);
+    }
+  };
+  for (const contradiction of card.contradictions || []) push(contradiction.passages);
+  for (const answer of card.answers || []) push(answer.sources);
+  for (const extra of card.extra_facts || []) push(extra.sources);
+  return sources;
+}
+
+function groupDateMismatches(sources) {
+  const byClass = new Map();
+  for (const src of sources) {
     const mismatch = src.date_mismatch;
-    if (!mismatch) continue;
-    const key = `${src.doc_id}|${mismatch.documented}|${mismatch.in_text}|${mismatch.kind}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const note = document.createElement("p");
-    note.className = "date-mismatch";
-    note.textContent = `${mismatchLabel(mismatch)} (${src.doc_id}).`;
-    parent.appendChild(note);
+    const kind = mismatch.kind || "measurement";
+    if (!byClass.has(kind)) byClass.set(kind, new Map());
+    const key = `${src.doc_id}|${mismatch.documented}|${mismatch.in_text}`;
+    const groups = byClass.get(kind);
+    if (!groups.has(key)) {
+      groups.set(key, { mismatch, doc_id: src.doc_id, sources: [], seen: new Set() });
+    }
+    const group = groups.get(key);
+    const quoteKey = `${src.doc_id}|${src.quote_de || ""}`;
+    if (group.seen.has(quoteKey)) continue;
+    group.seen.add(quoteKey);
+    group.sources.push(src);
   }
-  return seen.size > 0;
+  const kinds = [...byClass.keys()].sort((a, b) => {
+    const ia = MISMATCH_CLASS_ORDER.indexOf(a);
+    const ib = MISMATCH_CLASS_ORDER.indexOf(b);
+    return (ia < 0 ? MISMATCH_CLASS_ORDER.length : ia) - (ib < 0 ? MISMATCH_CLASS_ORDER.length : ib);
+  });
+  return kinds.map((kind) => ({
+    kind,
+    label: MISMATCH_CLASS_LABEL[kind] || kind,
+    groups: [...byClass.get(kind).values()],
+  }));
+}
+
+function mismatchDetail(src) {
+  const text = String(src.display || src.quote_de || "").trim();
+  if (text.length > 160) return `${text.slice(0, 157)}…`;
+  return text;
+}
+
+function renderDateMismatchSection(sources) {
+  const grouped = groupDateMismatches(sources);
+  if (!grouped.length) return;
+  const section = document.createElement("section");
+  section.className = "mismatch-section";
+  const heading = document.createElement("h4");
+  heading.textContent = "Date and text mismatch";
+  section.appendChild(heading);
+  for (const klass of grouped) {
+    const block = document.createElement("div");
+    block.className = "mismatch-class";
+    const title = document.createElement("h5");
+    title.textContent = klass.label;
+    block.appendChild(title);
+    for (const group of klass.groups) {
+      const div = document.createElement("div");
+      div.className = "alarm";
+      const note = document.createElement("p");
+      note.className = "date-mismatch";
+      note.textContent = `${mismatchLabel(group.mismatch)} (${group.doc_id}).`;
+      div.appendChild(note);
+      for (const src of group.sources) {
+        const row = document.createElement("div");
+        row.className = "mismatch-fact";
+        const detail = document.createElement("p");
+        detail.textContent = mismatchDetail(src);
+        row.appendChild(detail);
+        row.appendChild(sourceButton(src));
+        div.appendChild(row);
+      }
+      block.appendChild(div);
+    }
+    section.appendChild(block);
+  }
+  alarmsEl.appendChild(section);
 }
 
 function gapChip() {
@@ -318,10 +406,12 @@ function renderCard(card) {
     note.classList.add("hidden");
   }
 
-  if (card.contradictions && card.contradictions.length) {
+  const contradictions = card.contradictions || [];
+  const dateMismatches = collectDateMismatches(card);
+  if (contradictions.length || dateMismatches.length) {
     alarmsWrap.classList.remove("hidden");
     alarmsEl.innerHTML = "";
-    for (const c of card.contradictions) {
+    for (const c of contradictions) {
       const div = document.createElement("div");
       div.className = "alarm";
       div.innerHTML = `
@@ -331,16 +421,11 @@ function renderCard(card) {
         </div>
         <p>${escapeHtml(c.summary)}</p>
       `;
-      const passages = (c.passages || []).map((p) => ({
-        doc_id: p.doc_id,
-        date: p.date,
-        quote_de: p.quote_de,
-        date_mismatch: p.date_mismatch,
-      }));
-      appendDateMismatches(div, passages);
+      const passages = (c.passages || []).map(citation);
       appendSources(div, passages);
       alarmsEl.appendChild(div);
     }
+    renderDateMismatchSection(dateMismatches);
   } else {
     alarmsWrap.classList.add("hidden");
   }
@@ -365,13 +450,10 @@ function renderCard(card) {
         <p class="a">${escapeHtml(a.answer)}</p>
       </div>
     `;
-    if (appendDateMismatches(div.querySelector(".row-main"), a.sources)) {
-      div.classList.add("date-clash");
-    }
     const side = document.createElement("div");
     side.className = "row-side";
     if (missing) side.appendChild(gapChip());
-    if (a.sources && a.sources.length) appendSources(side, a.sources);
+    if (a.sources && a.sources.length) appendSources(side, a.sources.map(citation));
     div.appendChild(side);
     answersEl.appendChild(div);
   }
@@ -404,12 +486,9 @@ function renderCard(card) {
           <p class="a">${escapeHtml(ex.display)}</p>
         </div>
       `;
-      if (appendDateMismatches(div.querySelector(".row-main"), ex.sources)) {
-        div.classList.add("date-clash");
-      }
       const side = document.createElement("div");
       side.className = "row-side";
-      appendSources(side, ex.sources || []);
+      appendSources(side, (ex.sources || []).map(citation));
       div.appendChild(side);
       extrasEl.appendChild(div);
     }
@@ -452,6 +531,7 @@ async function openDocument(docId, quote) {
   } else {
     docText.textContent = text;
   }
+  syncSteps();
 }
 
 function renderTasks() {
@@ -466,6 +546,7 @@ function renderTasks() {
     btn.addEventListener("click", async () => {
       if (!ready || !selectedPatient) return;
       const patientNow = selectedPatient;
+      setBriefMode("loading");
       activeId = s.id;
       [...buttonsEl.querySelectorAll("button")].forEach((b) =>
         b.classList.toggle("active", b === btn)
@@ -524,6 +605,7 @@ freeForm.addEventListener("submit", async (event) => {
   const patientNow = selectedPatient;
   activeId = null;
   [...buttonsEl.querySelectorAll("button")].forEach((b) => b.classList.remove("active"));
+  setBriefMode("loading");
   freeSubmit.disabled = true;
   freeSubmit.textContent = "Asking Llama…";
   try {
@@ -573,8 +655,7 @@ patientForm.addEventListener("submit", (event) => {
 
 (async function init() {
   setChartEnabled(false);
-  emptyText.textContent = EMPTY_ROLE;
-  setBriefMode("empty");
+  setBriefMode("idle");
   await loadPatients();
   await loadSituations();
 })();

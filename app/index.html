@@ -3,51 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Brief</title>
+  <title>ClinicQ</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
-<body>
+<body data-step="role">
   <header class="top">
     <div class="brand">
-      <span class="wordmark">Brief</span>
+      <span class="wordmark">ClinicQ</span>
       <span class="pilot">Pilot</span>
     </div>
     <div id="status" class="status status-wait hidden" role="status">Reading the chart…</div>
-    <div class="top-search">
-      <form id="patient-form" class="patient-form">
-        <label for="patient-text">Chart</label>
-        <input id="patient-text" type="text" list="patient-list" autocomplete="off" spellcheck="false" placeholder="Name or chart id" disabled />
-        <datalist id="patient-list"></datalist>
-        <button type="submit" id="patient-open" disabled>Open</button>
-      </form>
-      <p id="patient-error" class="field-error hidden"></p>
-    </div>
   </header>
-
-  <div class="banner" id="patient-banner">
-    <p class="banner-name" id="patient-name">—</p>
-    <p class="banner-meta">
-      <span id="patient-id"></span>
-      <span class="sep" aria-hidden="true">·</span>
-      <span id="patient-asof"></span>
-    </p>
-  </div>
 
   <main class="workspace">
     <aside class="rail">
-      <h2>Who are you?</h2>
-      <div id="role-buttons" class="tasks"></div>
-      <h2 class="purpose-heading">Purpose</h2>
-      <div id="situation-buttons" class="tasks"></div>
-      <form id="free-form" class="visit-form">
-        <label for="free-text">What are you doing?</label>
-        <textarea id="free-text" rows="4" placeholder="e.g. radiation oncologist preparing IORT on 16 May 2016"></textarea>
-        <button type="submit" id="free-submit" disabled>Open brief</button>
-      </form>
+      <section id="step-role">
+        <h2>Who are you?</h2>
+        <div id="role-buttons" class="tasks"></div>
+      </section>
+      <section id="step-patient">
+        <h2>Patient</h2>
+        <form id="patient-form" class="patient-form">
+          <label class="visually-hidden" for="patient-text">Patient</label>
+          <input id="patient-text" type="text" list="patient-list" autocomplete="off" spellcheck="false" placeholder="Name or chart id" disabled />
+          <datalist id="patient-list"></datalist>
+          <button type="submit" id="patient-open" disabled>Open</button>
+        </form>
+        <p id="patient-error" class="field-error hidden"></p>
+        <div class="banner hidden" id="patient-banner">
+          <p class="banner-name" id="patient-name"></p>
+          <p class="banner-meta">
+            <span id="patient-id"></span>
+            <span class="sep" aria-hidden="true">·</span>
+            <span id="patient-asof"></span>
+          </p>
+        </div>
+      </section>
+      <section id="step-purpose">
+        <h2>Purpose</h2>
+        <div id="situation-buttons" class="tasks"></div>
+        <form id="free-form" class="visit-form">
+          <label for="free-text">What are you doing?</label>
+          <textarea id="free-text" rows="4" placeholder="e.g. radiation oncologist preparing IORT on 16 May 2016"></textarea>
+          <button type="submit" id="free-submit" disabled>Open brief</button>
+        </form>
+      </section>
     </aside>
 
     <section class="brief-pane" id="brief-pane" aria-live="polite">
-      <div id="brief-skeleton" class="skeleton" aria-hidden="true">
+      <h2>Replies</h2>
+      <div id="brief-skeleton" class="skeleton hidden" aria-hidden="true">
         <div class="sk sk-title"></div>
         <div class="sk sk-line"></div>
         <div class="sk sk-block"></div>
@@ -56,7 +61,7 @@
         <div class="sk sk-row"></div>
       </div>
       <div id="brief-empty" class="empty hidden">
-        <p id="brief-empty-text">Say who you are.</p>
+        <p id="brief-empty-text"></p>
       </div>
       <article id="card" class="brief hidden">
         <header class="brief-head">
