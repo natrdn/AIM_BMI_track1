@@ -36,7 +36,9 @@ Place the hackathon data/ directory beside server.py. This repository does not c
 
     python3 server.py
 
-Open http://127.0.0.1:8765/
+The server listens on every network interface, port 8765. On this machine open http://127.0.0.1:8765/
+
+On startup it prints a Share URL, such as http://192.168.1.42:8765/. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
 Optional environment variables: OLLAMA_URL (default http://localhost:11434) and OLLAMA_MODEL (default llama3.1).
 

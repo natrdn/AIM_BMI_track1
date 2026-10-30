@@ -50,7 +50,9 @@ From the repository root (where `server.py` and `data/` live):
 python3 server.py
 ```
 
-Open **http://127.0.0.1:8765/**
+The server listens on every network interface, port 8765. On this machine open **http://127.0.0.1:8765/**
+
+On startup it prints a Share URL, such as `http://192.168.1.42:8765/`. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
 Wait while the brief is loading (first build calls Llama and writes `cache/matrix.json`). Anna Musterfrau is filled in. Choose a task in the visit rail, or describe the visit and choose **Open brief**. Type **Beispielpatient** (or `0000-0002`) in the chart field and open that chart to read the 2021 PDF letters instead. That chart is cached separately as `cache/matrix-0000-0002.json`.
 

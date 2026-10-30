@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import threading
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -20,7 +21,7 @@ import patients
 
 ROOT = Path(__file__).resolve().parent
 APP_DIR = ROOT / "app"
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 8765
 
 STATE: dict[str, Any] = {
@@ -728,6 +729,17 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, render_free_text_patient(text, matrix))
 
 
+def share_url() -> str:
+    """Address other computers on this network should open."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            ip = sock.getsockname()[0]
+    except OSError:
+        ip = "127.0.0.1"
+    return f"http://{ip}:{PORT}/"
+
+
 def main() -> None:
     APP_DIR.mkdir(parents=True, exist_ok=True)
     for patient_id in patients.PATIENTS:
@@ -737,8 +749,10 @@ def main() -> None:
     else:
         print("[server] Using cached matrices. GET /api/rebuild?patient=<id> refreshes one chart.")
 
+    ThreadingHTTPServer.allow_reuse_address = True
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"[server] Open http://{HOST}:{PORT}/")
+    print(f"[server] Share {share_url()}")
+    print(f"[server] This machine: http://127.0.0.1:{PORT}/")
     print(f"[server] Model={matrix_mod.OLLAMA_MODEL} Ollama={matrix_mod.OLLAMA_URL}")
     httpd.serve_forever()
 
