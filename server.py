@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import socket
 import threading
@@ -22,7 +23,7 @@ import patients
 ROOT = Path(__file__).resolve().parent
 APP_DIR = ROOT / "app"
 HOST = "0.0.0.0"
-PORT = 8765
+PORT = int(os.environ.get("PORT", "8765"))
 
 STATE: dict[str, Any] = {
     "matrices": {},

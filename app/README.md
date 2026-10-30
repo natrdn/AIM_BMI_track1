@@ -54,8 +54,6 @@ The server listens on every network interface, port 8765. On this machine open *
 
 On startup it prints a Share URL, such as `http://192.168.1.42:8765/`. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
-GitHub can store this repository. It cannot serve the brief. GitHub Pages only publishes static files, and every chart is loaded by `server.py`. The letters and the cache stay on the machine that runs the server.
-
 Wait while the brief is loading (first build calls Llama and writes `cache/matrix.json`). Anna Musterfrau is filled in. Choose a task in the visit rail, or describe the visit and choose **Open brief**. Type **Beispielpatient** (or `0000-0002`) in the chart field and open that chart to read the 2021 PDF letters instead. That chart is cached separately as `cache/matrix-0000-0002.json`.
 
 To rebuild one chart:
@@ -66,6 +64,16 @@ GET http://127.0.0.1:8765/api/rebuild?patient=0000-0002
 ```
 
 If Ollama is down, the app still starts from the quote-verified seed so the five scored situations work; free-text mapping falls back to a general row subset.
+
+## Hosting
+
+GitHub can store this repository. It cannot serve the brief. GitHub Pages only publishes static files, and every chart is loaded by `server.py`.
+
+The public copy is on Fly.io: https://aim-bmi-track1-brief.fly.dev/
+
+That machine includes the letters and the cache. It sleeps when idle and wakes on the next visit. Llama is not hosted there. Ollama stays on a local machine only, at `localhost:11434`. On the Fly copy the five scored situations still open from the quote-checked cache. A typed visit does not call Llama, so that brief stays thinner than one opened on a machine where Ollama is running.
+
+`Dockerfile` and `fly.toml` describe that deploy. The server listens on the `PORT` Fly sets, and on 8765 when you start it locally.
 
 ## Submission note
 

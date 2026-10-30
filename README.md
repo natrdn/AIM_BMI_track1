@@ -40,11 +40,19 @@ The server listens on every network interface, port 8765. On this machine open h
 
 On startup it prints a Share URL, such as http://192.168.1.42:8765/. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
-GitHub can store this repository. It cannot serve the brief. GitHub Pages only publishes static files, and every chart is loaded by server.py. The letters and the cache stay on the machine that runs the server.
-
 Optional environment variables: OLLAMA_URL (default http://localhost:11434) and OLLAMA_MODEL (default llama3.1).
 
 The first start writes cache/matrix.json. Later starts load that file. If Ollama is down, the five scored situations still open from the quote-checked cache.
+
+## Hosting
+
+GitHub can store this repository. It cannot serve the brief. GitHub Pages only publishes static files, and every chart is loaded by server.py.
+
+The public copy is on Fly.io: https://aim-bmi-track1-brief.fly.dev/
+
+That machine includes the letters and the cache. It sleeps when idle and wakes on the next visit. Llama is not hosted there. Ollama stays on a local machine only, at localhost:11434. On the Fly copy the five scored situations still open from the quote-checked cache. A typed visit does not call Llama, so that brief stays thinner than one opened on a machine where Ollama is running.
+
+`Dockerfile` and `fly.toml` describe that deploy. The server listens on the `PORT` Fly sets, and on 8765 when you start it locally.
 
 ## Metrics
 
