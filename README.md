@@ -40,6 +40,8 @@ The server listens on every network interface, port 8765. On this machine open h
 
 On startup it prints a Share URL, such as http://192.168.1.42:8765/. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
+GitHub can store this repository. It cannot serve the brief. GitHub Pages only publishes static files, and every chart is loaded by server.py. The letters and the cache stay on the machine that runs the server.
+
 Optional environment variables: OLLAMA_URL (default http://localhost:11434) and OLLAMA_MODEL (default llama3.1).
 
 The first start writes cache/matrix.json. Later starts load that file. If Ollama is down, the five scored situations still open from the quote-checked cache.
