@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+data/
+cache/
+.env
+*.pyc
+.venv/
+venv/
+07_Stationaerer_Patientenbrief_2021-11-12 (1)/

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brief</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="wordmark">Brief</span>
+      <span class="pilot">Pilot</span>
+    </div>
+    <div id="status" class="status status-wait hidden" role="status">Reading the chart…</div>
+    <div class="top-search">
+      <form id="patient-form" class="patient-form">
+        <label for="patient-text">Chart</label>
+        <input id="patient-text" type="text" list="patient-list" autocomplete="off" spellcheck="false" placeholder="Name or chart id" />
+        <datalist id="patient-list"></datalist>
+        <button type="submit">Open</button>
+      </form>
+      <p id="patient-error" class="field-error hidden"></p>
+    </div>
+  </header>
+
+  <div class="banner" id="patient-banner">
+    <p class="banner-name" id="patient-name">—</p>
+    <p class="banner-meta">
+      <span id="patient-id"></span>
+      <span class="sep" aria-hidden="true">·</span>
+      <span id="patient-asof"></span>
+    </p>
+  </div>
+
+  <main class="workspace">
+    <aside class="rail">
+      <h2>This visit</h2>
+      <div id="situation-buttons" class="tasks"></div>
+      <form id="free-form" class="visit-form">
+        <label for="free-text">What are you doing?</label>
+        <textarea id="free-text" rows="4" placeholder="e.g. radiation oncologist preparing IORT on 16 May 2016"></textarea>
+        <button type="submit" id="free-submit" disabled>Open brief</button>
+      </form>
+    </aside>
+
+    <section class="brief-pane" id="brief-pane" aria-live="polite">
+      <div id="brief-skeleton" class="skeleton" aria-hidden="true">
+        <div class="sk sk-title"></div>
+        <div class="sk sk-line"></div>
+        <div class="sk sk-block"></div>
+        <div class="sk sk-row"></div>
+        <div class="sk sk-row"></div>
+        <div class="sk sk-row"></div>
+      </div>
+      <div id="brief-empty" class="empty hidden">
+        <p id="brief-empty-text">Choose a task, or describe this visit.</p>
+      </div>
+      <article id="card" class="brief hidden">
+        <header class="brief-head">
+          <p class="role" id="card-role"></p>
+          <h2 id="card-title"></h2>
+          <p class="desc" id="card-desc"></p>
+          <p class="note hidden" id="card-note"></p>
+        </header>
+        <div id="alarms-wrap" class="group hidden">
+          <h3>Contradictions</h3>
+          <div id="alarms"></div>
+        </div>
+        <div id="facts-wrap" class="group hidden">
+          <h3>Facts for this task</h3>
+          <div id="answers" class="rows"></div>
+        </div>
+        <div id="extras-wrap" class="group extras hidden">
+          <h3>Also on this chart</h3>
+          <div id="extras" class="rows"></div>
+        </div>
+      </article>
+    </section>
+
+    <aside class="letter" aria-label="Letter">
+      <div id="doc-empty" class="empty">
+        <p>Select a citation to open the letter.</p>
+      </div>
+      <div id="doc-view" class="doc-view hidden">
+        <header class="doc-head">
+          <p class="doc-kicker" id="doc-kicker"></p>
+          <h2 id="doc-title"></h2>
+          <p class="doc-sub" id="doc-sub"></p>
+        </header>
+        <div id="doc-text" class="doc-text"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
