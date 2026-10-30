@@ -23,7 +23,7 @@ server.py  ── one patient id per request
 3. **Matrix 3** — Hard rules mark Anna’s five alarms (C1–C5) and, separately, the clashes in the 2021 letters. Fewer allergy symptoms than a fuller description is **not** alarming. Weight change and dose change over time are **not** alarming.
 4. **Matrix 2** — `catalogue.py` maps each scored situation to Anna’s rows. `catalogue_0002.py` maps the same buttons onto his rows. Filtering a cache is instant (no second model call). A typed situation the catalogue does not know triggers a short Llama call that may **only select rows already in that patient’s cache**.
 
-The chart name or id sits in the top bar. Anna Musterfrau is filled in by default, and her scored tasks are listed under **This visit**. A typed visit uses **Open brief**.
+The chart name or id sits in the top bar. It stays closed until a role is chosen. Tasks for that role are listed under **Purpose**. A typed purpose uses **Open brief**.
 
 Llama decides wording and row mapping. The card never shows a sentence that failed the quote check, and it never adds advice that is not in a letter.
 
@@ -54,7 +54,7 @@ The server listens on every network interface, port 8765. On this machine open *
 
 On startup it prints a Share URL, such as `http://192.168.1.42:8765/`. Other computers on the same network open that address. If macOS asks to allow incoming connections for Python, allow it.
 
-Wait while the brief is loading (first build calls Llama and writes `cache/matrix.json`). Anna Musterfrau is filled in. Choose a task in the visit rail, or describe the visit and choose **Open brief**. Type **Beispielpatient** (or `0000-0002`) in the chart field and open that chart to read the 2021 PDF letters instead. That chart is cached separately as `cache/matrix-0000-0002.json`.
+Wait while the brief is loading (first build calls Llama and writes `cache/matrix.json`). Choose a role, open a chart, then choose a task under **Purpose**, or describe the purpose and choose **Open brief**. Type **Beispielpatient** (or `0000-0002`) in the chart field and open that chart to read the 2021 PDF letters instead. That chart is cached separately as `cache/matrix-0000-0002.json`.
 
 To rebuild one chart:
 

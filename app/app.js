@@ -1,8 +1,10 @@
 const statusEl = document.getElementById("status");
 const patientForm = document.getElementById("patient-form");
 const patientText = document.getElementById("patient-text");
+const patientOpen = document.getElementById("patient-open");
 const patientList = document.getElementById("patient-list");
 const patientError = document.getElementById("patient-error");
+const roleButtonsEl = document.getElementById("role-buttons");
 const buttonsEl = document.getElementById("situation-buttons");
 const freeForm = document.getElementById("free-form");
 const freeText = document.getElementById("free-text");
@@ -25,13 +27,17 @@ const docTitle = document.getElementById("doc-title");
 const docSub = document.getElementById("doc-sub");
 const docText = document.getElementById("doc-text");
 
-const EMPTY_READY = "Choose a task, or describe this visit.";
+const EMPTY_ROLE = "Say who you are.";
+const EMPTY_CHART = "Open a chart.";
+const EMPTY_READY = "Choose a task, or describe this purpose.";
 const EMPTY_FAILED = "This chart could not be opened.";
 
 let ready = false;
 let activeId = null;
-let selectedPatient = "0000-0001";
+let selectedRole = null;
+let selectedPatient = null;
 let patients = [];
+let situations = [];
 let watchToken = 0;
 
 function setStatus(kind, text) {
@@ -63,8 +69,31 @@ function patientQuery(patientId) {
   return `patient=${encodeURIComponent(patientId || selectedPatient)}`;
 }
 
+function setChartEnabled(enabled) {
+  patientText.disabled = !enabled;
+  patientOpen.disabled = !enabled;
+}
+
+function clearOpenedChart() {
+  watchToken += 1;
+  selectedPatient = null;
+  ready = false;
+  patientText.value = "";
+  showPatientError("");
+  document.getElementById("patient-name").textContent = "—";
+  document.getElementById("patient-id").textContent = "";
+  document.getElementById("patient-asof").textContent = "";
+  freeSubmit.disabled = true;
+  activeId = null;
+  cardEl.classList.add("hidden");
+  resetLetter();
+  emptyText.textContent = selectedRole ? EMPTY_CHART : EMPTY_ROLE;
+  setBriefMode("empty");
+}
+
 async function pollStatus() {
   const patientNow = selectedPatient;
+  if (!patientNow) return false;
   try {
     const s = await fetchJSON(`/api/status?${patientQuery(patientNow)}`);
     if (patientNow !== selectedPatient) return false;
@@ -176,6 +205,7 @@ function matchPatient(text) {
 }
 
 function selectPatient(patient) {
+  if (!selectedRole) return;
   showPatientError("");
   patientText.value = patient.name;
   if (patient.id === selectedPatient) return;
@@ -424,17 +454,17 @@ async function openDocument(docId, quote) {
   }
 }
 
-async function loadSituations() {
-  const data = await fetchJSON("/api/situations");
+function renderTasks() {
   buttonsEl.innerHTML = "";
-  for (const s of data.situations) {
+  const tasks = situations.filter((item) => item.role === selectedRole);
+  for (const s of tasks) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.innerHTML = `<span class="task-id">${escapeHtml(s.id)}</span><span class="task-title">${escapeHtml(s.title)}</span>`;
     btn.title = `${s.role}: ${s.title}`;
     btn.disabled = !ready;
     btn.addEventListener("click", async () => {
-      if (!ready) return;
+      if (!ready || !selectedPatient) return;
       const patientNow = selectedPatient;
       activeId = s.id;
       [...buttonsEl.querySelectorAll("button")].forEach((b) =>
@@ -452,9 +482,43 @@ async function loadSituations() {
   }
 }
 
+function selectRole(role) {
+  if (role === selectedRole) return;
+  selectedRole = role;
+  [...roleButtonsEl.querySelectorAll("button")].forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.role === role);
+  });
+  setChartEnabled(true);
+  clearOpenedChart();
+  renderTasks();
+}
+
+function renderRoles() {
+  roleButtonsEl.innerHTML = "";
+  const roles = [];
+  for (const item of situations) {
+    if (item.role && !roles.includes(item.role)) roles.push(item.role);
+  }
+  for (const role of roles) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.role = role;
+    btn.innerHTML = `<span class="task-title">${escapeHtml(role)}</span>`;
+    btn.addEventListener("click", () => selectRole(role));
+    roleButtonsEl.appendChild(btn);
+  }
+}
+
+async function loadSituations() {
+  const data = await fetchJSON("/api/situations");
+  situations = data.situations || [];
+  renderRoles();
+  renderTasks();
+}
+
 freeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!ready) return;
+  if (!ready || !selectedRole || !selectedPatient) return;
   const text = freeText.value.trim();
   if (!text) return;
   const patientNow = selectedPatient;
@@ -494,16 +558,11 @@ async function loadPatients() {
     byId.label = patient.name;
     patientList.appendChild(byId);
   }
-  const current = patients.find((patient) => patient.id === selectedPatient) || patients[0];
-  if (current) {
-    selectedPatient = current.id;
-    patientText.value = current.name;
-    renderPatientHeader(current);
-  }
 }
 
 patientForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!selectedRole) return;
   const result = matchPatient(patientText.value);
   if (!result.patient) {
     showPatientError(result.error);
@@ -513,8 +572,9 @@ patientForm.addEventListener("submit", (event) => {
 });
 
 (async function init() {
-  setBriefMode("loading");
+  setChartEnabled(false);
+  emptyText.textContent = EMPTY_ROLE;
+  setBriefMode("empty");
   await loadPatients();
   await loadSituations();
-  await watchPatient();
 })();

@@ -16,9 +16,9 @@
     <div class="top-search">
       <form id="patient-form" class="patient-form">
         <label for="patient-text">Chart</label>
-        <input id="patient-text" type="text" list="patient-list" autocomplete="off" spellcheck="false" placeholder="Name or chart id" />
+        <input id="patient-text" type="text" list="patient-list" autocomplete="off" spellcheck="false" placeholder="Name or chart id" disabled />
         <datalist id="patient-list"></datalist>
-        <button type="submit">Open</button>
+        <button type="submit" id="patient-open" disabled>Open</button>
       </form>
       <p id="patient-error" class="field-error hidden"></p>
     </div>
@@ -35,7 +35,9 @@
 
   <main class="workspace">
     <aside class="rail">
-      <h2>This visit</h2>
+      <h2>Who are you?</h2>
+      <div id="role-buttons" class="tasks"></div>
+      <h2 class="purpose-heading">Purpose</h2>
       <div id="situation-buttons" class="tasks"></div>
       <form id="free-form" class="visit-form">
         <label for="free-text">What are you doing?</label>
@@ -54,7 +56,7 @@
         <div class="sk sk-row"></div>
       </div>
       <div id="brief-empty" class="empty hidden">
-        <p id="brief-empty-text">Choose a task, or describe this visit.</p>
+        <p id="brief-empty-text">Say who you are.</p>
       </div>
       <article id="card" class="brief hidden">
         <header class="brief-head">
